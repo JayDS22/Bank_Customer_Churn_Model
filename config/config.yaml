@@ -1,0 +1,108 @@
+# Consumer Lending Fairness Audit Configuration
+# =============================================
+
+data:
+  # Path to LendingClub CSV (set to null to use synthetic data)
+  raw_path: null  # e.g., "data/lending_club_loans.csv"
+  sample_size: 50000  # rows for synthetic data generation
+  test_size: 0.2
+  random_state: 42
+
+  # LendingClub columns to use
+  target_column: "loan_status"
+  positive_label: "Charged Off"  # default = 1
+
+  # Feature groups
+  numeric_features:
+    - "loan_amnt"
+    - "int_rate"
+    - "installment"
+    - "annual_inc"
+    - "dti"
+    - "open_acc"
+    - "revol_bal"
+    - "revol_util"
+    - "total_acc"
+    - "emp_length_num"
+
+  categorical_features:
+    - "term"
+    - "grade"
+    - "home_ownership"
+    - "verification_status"
+    - "purpose"
+
+segments:
+  income:
+    low_threshold: 40000
+    high_threshold: 80000
+    labels: ["Low", "Medium", "High"]
+
+  geography:
+    regions:
+      Northeast: ["CT", "ME", "MA", "NH", "NJ", "NY", "PA", "RI", "VT"]
+      South: ["AL", "AR", "DE", "FL", "GA", "KY", "LA", "MD", "MS", "NC", "OK", "SC", "TN", "TX", "VA", "WV", "DC"]
+      Midwest: ["IL", "IN", "IA", "KS", "MI", "MN", "MO", "NE", "ND", "OH", "SD", "WI"]
+      West: ["AK", "AZ", "CA", "CO", "HI", "ID", "MT", "NV", "NM", "OR", "UT", "WA", "WY"]
+
+model:
+  logistic:
+    C: 1.0
+    max_iter: 1000
+    class_weight: "balanced"
+    solver: "lbfgs"
+
+  xgboost:
+    n_estimators: 300
+    max_depth: 6
+    learning_rate: 0.1
+    subsample: 0.8
+    colsample_bytree: 0.8
+    scale_pos_weight: 1  # auto-computed from class balance
+    eval_metric: "auc"
+    random_state: 42
+
+  cv_folds: 5
+
+fairness:
+  # Thresholds for flagging disparate impact
+  demographic_parity_threshold: 0.05
+  equalized_odds_threshold: 0.05
+  disparate_impact_ratio_threshold: 0.80
+
+  # Protected attribute proxies
+  protected_attributes:
+    - "income_group"
+    - "state_region"
+
+causal:
+  did:
+    # Temporal cutoff for pre/post periods (issue_date)
+    policy_change_date: "2015-01-01"
+    treatment_group: "Low"  # income group treated differently
+    control_group: "High"
+
+  iv:
+    # Instrument for income
+    instrument: "state_unemployment_rate"
+    endogenous: "annual_inc"
+    controls:
+      - "dti"
+      - "open_acc"
+      - "revol_util"
+      - "total_acc"
+
+bayesian:
+  samples: 2000
+  tune: 1000
+  chains: 2
+  target_accept: 0.9
+  prior_gap_mu: 0.0
+  prior_gap_sigma: 0.1
+
+output:
+  plots_dir: "outputs/plots"
+  reports_dir: "outputs/reports"
+  model_dir: "outputs/models"
+  figure_format: "png"
+  figure_dpi: 150

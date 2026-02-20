@@ -1,0 +1,24 @@
+name: lending-fairness-audit
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - pandas>=1.5
+  - numpy>=1.23
+  - scipy>=1.9
+  - scikit-learn>=1.2
+  - xgboost>=1.7
+  - statsmodels>=0.14
+  - matplotlib>=3.6
+  - seaborn>=0.12
+  - pyyaml>=6.0
+  - tqdm>=4.64
+  - joblib>=1.2
+  - pytest>=7.4
+  - pip
+  - pip:
+    - pymc>=5.0
+    - arviz>=0.15
+    - linearmodels>=5.0
+    - dowhy>=0.9
