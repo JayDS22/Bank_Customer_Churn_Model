@@ -33,7 +33,6 @@ This project conducts a rigorous offline statistical audit of consumer lending M
 - **Fairness Metrics**: Demographic parity, equalized odds, predictive parity, and disparate impact ratio across income and geographic segments
 - **Causal Inference**: Difference-in-Differences (DiD) and Instrumental Variable (IV) estimation to distinguish causal default predictors from spurious correlates
 - **Bayesian Uncertainty Quantification**: Posterior credible intervals on fairness gaps and model coefficients to assess statistical robustness of bias findings
-- **Agentic Tooling (Claude Code)**: Accelerated EDA, model diagnostics, and iterative code development
 
 The final deliverable includes clear visualizations and written recommendations for model recalibration to reduce bias while maintaining predictive accuracy.
 
@@ -41,99 +40,40 @@ The final deliverable includes clear visualizations and written recommendations 
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    CONSUMER LENDING FAIRNESS AUDIT                      │
-│                         System Architecture                             │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    classDef data fill:#1d2a3a,stroke:#58a6ff,stroke-width:2px,color:#e6edf3
+    classDef analyze fill:#1f2a23,stroke:#3fb950,stroke-width:2px,color:#e6edf3
+    classDef out fill:#2a2520,stroke:#c9a227,stroke-width:2px,color:#e6edf3
 
-┌──────────────┐    ┌──────────────────────────────────────────────────┐
-│  DATA LAYER  │    │                                                  │
-│              │    │  LendingClub CSV ──► Data Loader ──► Cleaner     │
-│  (Raw Input) │───►│       │                                │         │
-│              │    │       ▼                                ▼         │
-│  lending_    │    │  Feature Engineering    Segment Tagging          │
-│  club.csv    │    │  (income bins,         (income_group,           │
-│              │    │   geo regions,          state_region,            │
-│              │    │   derived ratios)       urban_rural)             │
-└──────────────┘    └──────────────┬──────────────┬────────────────────┘
-                                   │              │
-                    ┌──────────────▼──────────────▼────────────────────┐
-                    │           ANALYSIS LAYER                         │
-                    │                                                  │
-                    │  ┌─────────────────────────────────────────┐     │
-                    │  │  1. BASELINE MODEL (Python)             │     │
-                    │  │     • Logistic Regression / XGBoost     │     │
-                    │  │     • 5-Fold Stratified CV              │     │
-                    │  │     • AUC-ROC, Precision, Recall        │     │
-                    │  └─────────────┬───────────────────────────┘     │
-                    │                │                                  │
-                    │  ┌─────────────▼───────────────────────────┐     │
-                    │  │  2. FAIRNESS AUDIT (Python)             │     │
-                    │  │     • Demographic Parity                │     │
-                    │  │     • Equalized Odds                    │     │
-                    │  │     • Predictive Parity                 │     │
-                    │  │     • Disparate Impact Ratio            │     │
-                    │  │     Segments: income_group, state_region│     │
-                    │  └─────────────┬───────────────────────────┘     │
-                    │                │                                  │
-                    │  ┌─────────────▼───────────────────────────┐     │
-                    │  │  3. CAUSAL INFERENCE (R + Python)       │     │
-                    │  │     • Difference-in-Differences (DiD)   │     │
-                    │  │     • Instrumental Variables (IV / 2SLS)│     │
-                    │  │     • Refutation tests                  │     │
-                    │  └─────────────┬───────────────────────────┘     │
-                    │                │                                  │
-                    │  ┌─────────────▼───────────────────────────┐     │
-                    │  │  4. BAYESIAN ANALYSIS (Python/PyMC)     │     │
-                    │  │     • Posterior credible intervals       │     │
-                    │  │     • Fairness gap uncertainty           │     │
-                    │  │     • Coefficient stability              │     │
-                    │  └─────────────┬───────────────────────────┘     │
-                    │                │                                  │
-                    └────────────────┼────────────────────────────────┘
-                                     │
-                    ┌────────────────▼────────────────────────────────┐
-                    │           OUTPUT LAYER                           │
-                    │                                                  │
-                    │  ┌──────────┐ ┌───────────┐ ┌────────────────┐  │
-                    │  │ Fairness │ │  Causal   │ │   Bayesian     │  │
-                    │  │ Plots    │ │  Effect   │ │   Posterior    │  │
-                    │  │ (8+)     │ │  Tables   │ │   Plots        │  │
-                    │  └──────────┘ └───────────┘ └────────────────┘  │
-                    │                                                  │
-                    │  ┌──────────────────────────────────────────┐    │
-                    │  │  RECOMMENDATIONS REPORT                 │    │
-                    │  │  • Bias-reduction recalibration steps    │    │
-                    │  │  • Feature audit (causal vs. proxy)      │    │
-                    │  │  • Accuracy-fairness tradeoff analysis   │    │
-                    │  └──────────────────────────────────────────┘    │
-                    └─────────────────────────────────────────────────┘
+    D[Data Layer<br/>LendingClub CSV · loader · cleaner<br/>feature engineering + segment tagging]:::data
+    BASE[Baseline Models<br/>Logistic / XGBoost · 5-fold CV]:::analyze
+    FAIR[Fairness Audit<br/>DP · EO · PP · DI ratio<br/>across income, geo]:::analyze
+    CAUSAL[Causal Inference<br/>DiD · IV/2SLS · refutation]:::analyze
+    BAYES[Bayesian PyMC<br/>posterior CIs · fairness gap uncertainty]:::analyze
+    OUT[Outputs<br/>plots · effect tables · posteriors<br/>recalibration recommendations]:::out
 
-┌─────────────────────────────────────────────────────────────────────────┐
-│  TOOLING: Python 3.9+ │ R 4.0+ │ PyMC/ArviZ │ scikit-learn │ XGBoost │
-│          pandas │ matplotlib │ seaborn │ linearmodels │ Claude Code    │
-└─────────────────────────────────────────────────────────────────────────┘
+    D --> BASE --> FAIR --> CAUSAL --> BAYES --> OUT
+
+    click BASE href "src" "Baseline models"
+    click FAIR href "src" "Fairness module"
+    click CAUSAL href "R" "Causal inference (R)"
+    click BAYES href "src" "Bayesian module"
+    click D href "data" "Data loader"
+    click OUT href "outputs" "Reports & plots"
 ```
 
 ### Pipeline Flow
 
-```
-Data Ingestion ──► Feature Engineering ──► Train/Test Split
-                                                │
-                        ┌───────────────────────┤
-                        ▼                       ▼
-                  Baseline Model          Fairness Audit
-                  (Logistic/XGB)         (4 metrics × N segments)
-                        │                       │
-                        ▼                       ▼
-                  Causal Inference        Bayesian Uncertainty
-                  (DiD + IV)             (PyMC posterior)
-                        │                       │
-                        └───────────┬───────────┘
-                                    ▼
-                          Integrated Report
-                          + Recommendations
+```mermaid
+flowchart LR
+    A[Data Ingestion] --> B[Feature Engineering] --> C[Train/Test Split]
+    C --> D[Baseline Model<br/>Logistic / XGB]
+    C --> E[Fairness Audit<br/>4 metrics × N segments]
+    D --> F[Causal Inference<br/>DiD + IV]
+    E --> G[Bayesian Uncertainty<br/>PyMC posterior]
+    F --> H[Integrated Report<br/>+ Recommendations]
+    G --> H
 ```
 
 ---
@@ -399,7 +339,6 @@ The audit generates 8+ publication-quality plots:
 | Bayesian | PyMC, ArviZ |
 | Data | pandas, NumPy |
 | Visualization | matplotlib, seaborn |
-| Agentic Tooling | Claude Code |
 | Testing | pytest |
 
 ---
@@ -423,5 +362,4 @@ This project is licensed under the MIT License — see [LICENSE](LICENSE) for de
 ## Acknowledgments
 
 - [LendingClub](https://www.lendingclub.com/) for publicly available loan data
-- Anthropic's Claude Code for accelerated development workflow
 - Academic references: Hardt et al. (2016) "Equality of Opportunity in Supervised Learning", Angrist & Pischke "Mostly Harmless Econometrics"
